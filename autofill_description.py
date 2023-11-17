@@ -94,9 +94,9 @@ def main():
     open_ai_model = os.environ.get("INPUT_OPENAI_MODEL", "gpt-3.5-turbo")
     max_prompt_tokens = int(os.environ.get("INPUT_MAX_TOKENS", "1000"))
     model_temperature = float(os.environ.get("INPUT_TEMPERATURE", "0.6"))
-    model_sample_prompt = os.environ.get("INPUT_MODEL_SAMPLE_PROMPT", SAMPLE_PROMPT)
+    model_sample_prompt = os.environ.get("INPUT_SAMPLE_PROMPT", SAMPLE_PROMPT)
     model_sample_response = os.environ.get(
-        "INPUT_MODEL_SAMPLE_RESPONSE", GOOD_SAMPLE_RESPONSE
+        "INPUT_SAMPLE_RESPONSE", GOOD_SAMPLE_RESPONSE
     )
     authorization_header = {
         "Accept": "application/vnd.github.v3+json",
