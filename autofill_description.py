@@ -41,10 +41,16 @@ Changes in file test/CommandParserTest.cpp: @@ -566,7 +566,7 @@ TEST(CommandPars
 """
 
 GOOD_SAMPLE_RESPONSE = """
-Currently, our CI build does not include Valgrind as part of the build and test process. Valgrind is a powerful tool for detecting memory errors, and its use is essential for maintaining the integrity of our project.
-This pull request adds Valgrind to the CI build, so that any memory errors will be detected and reported immediately. This will help to prevent undetected memory errors from making it into the production build.
+## Overview
+This pull request aims to integrate Valgrind into our Continuous Integration (CI) process to enhance memory leak detection and code reliability.
 
-Overall, this change will improve the quality of the project by helping us detect and prevent memory errors.
+## Changes Made
+    - **CI Workflow Update**: Included Valgrind installation and configured it to run with our test suite.
+    - **Test Suite Adjustments**: Made minor adjustments to the test suite for better compatibility with Valgrind and improved test coverage.
+
+## Impact
+    - **Enhanced Code Quality**: Integrating Valgrind allows for automatic detection of memory leaks and access errors, leading to a more robust codebase.
+    - **Improved Testing**: The adjustments in the test suite ensure comprehensive testing and accuracy.
 """
 
 
@@ -93,15 +99,14 @@ def main():
     if allowed_users:
         allowed_users = allowed_users.split(",")
     #open_ai_model
-    open_ai_models = json.loads( os.environ.get("INPUT_OPENAI_MODELS", '{ "gpt-3.5-turbo" : 4096 }') )
+    open_ai_models = json.loads( os.environ.get("INPUT_OPENAI_MODELS") )
     #max_prompt_tokens = int(os.environ.get("INPUT_MAX_TOKENS", "1000"))
-    max_response_tokens = int(os.environ.get("INPUT_MAX_RESPONSE_TOKEN", "2048"))
-    model_temperature = float(os.environ.get("INPUT_TEMPERATURE", "0.6"))
+    max_response_tokens = int(os.environ.get("INPUT_MAX_RESPONSE_TOKENS"))
+    model_temperature = float(os.environ.get("INPUT_TEMPERATURE"))
     model_sample_prompt = os.environ.get("INPUT_SAMPLE_PROMPT", SAMPLE_PROMPT)
     model_sample_response = os.environ.get(
         "INPUT_SAMPLE_RESPONSE", GOOD_SAMPLE_RESPONSE
     )
-    debug_mode = os.environ.get("INPUT_DEBUG_MODE", "false").lower() == "true"
     
     authorization_header = {
         "Accept": "application/vnd.github.v3+json",
@@ -122,12 +127,12 @@ def main():
             {"role": "user", "content": completion_prompt},
         ]
     # calculate for model selection
-    
     model = model_selection(open_ai_models, messages, max_response_tokens)
     if model == "":
         print("No model available for this prompt")
         return 1
-    
+
+    print(messages)
     return 0
     openai.api_key = openai_api_key
     openai_response = openai.ChatCompletion.create(
@@ -258,7 +263,7 @@ def model_selection( models , messages , max_response_tokens):
         prompt_tokens = num_tokens_from_messages(messages, model)
         if prompt_tokens > max_prompt_tokens:
             continue
-        print(f"May using model {model} with {prompt_tokens} tokens")
+        print(f"May using model {model} with {prompt_tokens} prompt tokens and reserve {max_response_tokens} response token")
         candidate.append([model, models[model]])
     if len(candidate) == 0:
         return ""
