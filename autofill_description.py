@@ -137,7 +137,7 @@ def main():
         print(f"Model {model} does not have enough token to generate response")
         return 1
 
-    extend_response_token = max_response_tokens + token_left * 0.8
+    extend_response_token = int( max_response_tokens + token_left * 0.8 )
     print(f"Using model {model} with {prompt_token} prompt tokens and reserve {extend_response_token} response token")
     
     openai.api_key = openai_api_key
