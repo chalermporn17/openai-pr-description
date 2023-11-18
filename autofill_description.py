@@ -127,17 +127,25 @@ def main():
             {"role": "user", "content": completion_prompt},
         ]
     # calculate for model selection
-    model = model_selection(open_ai_models, messages, max_response_tokens)
+    model, prompt_token = model_selection(open_ai_models, messages, max_response_tokens)
     if model == "":
         print("No model available for this prompt")
         return 1
 
+    token_left = open_ai_models[model] - prompt_token - max_response_tokens
+    if token_left < 0:
+        print(f"Model {model} does not have enough token to generate response")
+        return 1
+
+    extend_response_token = max_response_tokens + token_left * 0.8
+    print(f"Using model {model} with {prompt_token} prompt tokens and reserve {extend_response_token} response token")
+    
     openai.api_key = openai_api_key
     openai_response = openai.ChatCompletion.create(
         model=model,
         messages=messages,
         temperature=model_temperature,
-        max_tokens=open_ai_models[model],
+        max_tokens=extend_response_token,
     )
 
     try:
@@ -267,13 +275,13 @@ def model_selection( models , messages , max_response_tokens):
         if prompt_tokens > max_prompt_tokens:
             continue
         print(f"May using model {model} with {prompt_tokens} prompt tokens and reserve {max_response_tokens} response token")
-        candidate.append([model, models[model]])
+        candidate.append([model, models[model] , prompt_tokens])
     if len(candidate) == 0:
-        return ""
+        return "",0
     # sort by max_token
     candidate.sort(key=lambda x: x[1])
     print(f"Using model {candidate[0][0]}")
-    return candidate[0][0]
+    return candidate[0][0] , candidate[0][2]
 
 
 if __name__ == "__main__":
