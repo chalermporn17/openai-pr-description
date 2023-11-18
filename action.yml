@@ -18,7 +18,7 @@ inputs:
   openai_models:
     description: 'OpenAI model to use, needs to be compatible with the chat/completions endpoint , input as json'
     required: false
-    default: '{ "gpt-3.5-turbo" : 4096 }'
+    default: '{ "gpt-3.5-turbo" : 4096 , "gpt-3.5-turbo-16k" : 16384}'
   max_response_tokens:
     description: 'Maximum number of response tokens to use , this will reserve for number of tokens from the model for the response'
     required: false
