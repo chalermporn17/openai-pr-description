@@ -132,8 +132,6 @@ def main():
         print("No model available for this prompt")
         return 1
 
-    print(messages)
-    return 0
     openai.api_key = openai_api_key
     openai_response = openai.ChatCompletion.create(
         model=model,
@@ -142,6 +140,11 @@ def main():
         max_tokens=open_ai_models[model],
     )
 
+    try:
+        usage = openai_response.usage
+        print(f"OpenAI API usage this request: {usage}")
+    except:
+        pass
     generated_pr_description = openai_response.choices[0].message.content
     redundant_prefix = "This pull request "
     if generated_pr_description.startswith(redundant_prefix):
