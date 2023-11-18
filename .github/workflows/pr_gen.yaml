@@ -5,6 +5,7 @@ on:
     branches:
       - dev
       - main
+      - master
       
 jobs:
   openai-pr-description:
