@@ -35,17 +35,23 @@ i.e. around ~$0.10 for 15-20 pull requests so far.
 2. Add the OpenAI API key as a [secret] in your repository's settings.
 3. Create a workflow YAML file, e.g. `.github/workflows/openai-pr-description.yml` with the following contents:
 
-```yaml
+### Example workflow
+``` yaml
 name: Autofill PR description
 
-on: pull_request
-
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+      - master
+      
 jobs:
   openai-pr-description:
     runs-on: ubuntu-22.04
-
+    timeout-minutes: 10
     steps:
-      - uses: platisd/openai-pr-description@master
+      - uses: chalermporn17/openai-pr-description@dev
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}
@@ -68,6 +74,8 @@ jobs:
 [OpenAI API key]: https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key
 [OpenAI model]: https://platform.openai.com/docs/models
 [secret]: https://docs.github.com/en/actions/security-guides/encrypted-secrets
+
+**example pull request** https://github.com/chalermporn17/openai-pr-description/pull/2
 
 ## File types that will include in prompt
 `.java,.py,.js,.ts,.cpp,.c,.cs,.rb,.go,.php,.swift,.html,.htm,.css,.scss,.sass,.less,.xml,.json,.yaml,.yml,.sh,.bat,.ps1,.cfg,.conf,.ini,.md,.txt,.rtf,.pdf,.sql,.db,.sqlite,.xaml,.plist`
