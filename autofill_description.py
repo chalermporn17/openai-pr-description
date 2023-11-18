@@ -8,9 +8,20 @@ import os
 import tiktoken
 
 SAMPLE_PROMPT = """
-Write a pull request description focusing on the motivation behind the change and why it improves the project.
+Write a pull request description , describe the summary of change.
 Go straight to the point.
 
+answer in format
+```
+## Overview
+tell overview here
+## Changes Made
+- **Header**: Description
+- **Header**: Description
+## Impact
+- **Header**: Description
+- **Header**: Description
+```
 The title of the pull request is "Enable valgrind on CI" and the following changes took place: 
 
 Changes in file .github/workflows/build-ut-coverage.yml: @@ -24,6 +24,7 @@ jobs:
@@ -236,8 +247,20 @@ def get_pull_request_description(allowed_users,github_api_url, repo, pull_reques
         pull_request_files.extend(pull_files_chunk)
 
         completion_prompt = f"""
-Write a pull request description focusing on the motivation behind the change and why it improves the project.
+Write a pull request description , describe the summary of change.
 Go straight to the point.
+
+answer in format
+```
+## Overview
+tell overview here
+## Changes Made
+- **Header**: Description
+- **Header**: Description
+## Impact
+- **Header**: Description
+- **Header**: Description
+```
 
 The title of the pull request is "{pull_request_title}" and the following changes took place: \n
 """
