@@ -117,6 +117,9 @@ def main():
     status , completion_prompt = get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header,file_types)
     if status != 0:
         return 1
+    else:
+        if completion_prompt == "":
+            return status
     
     messages=[
             {
@@ -257,7 +260,7 @@ The title of the pull request is "{pull_request_title}" and the following change
     
     if not is_any_file_type_matched:
         print("No file type matched")
-        return 1, ""
+        return 0, ""
     
     return 0, completion_prompt
 
