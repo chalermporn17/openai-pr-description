@@ -15,14 +15,14 @@ inputs:
     description: 'Comma-separated list of GitHub usernames this action will run for, if empty it will run for all users'
     required: false
     default: ''
-  openai_model:
-    description: 'OpenAI model to use, needs to be compatible with the chat/completions endpoint'
+  openai_models:
+    description: 'OpenAI model to use, needs to be compatible with the chat/completions endpoint , input as json'
     required: false
-    default: 'gpt-3.5-turbo'
-  max_tokens:
-    description: 'Maximum number of prompt tokens to use'
+    default: '{ "gpt-3.5-turbo" : 4096 }'
+  max_response_tokens:
+    description: 'Maximum number of response tokens to use , this will reserve for number of tokens from the model for the response'
     required: false
-    default: '1000'
+    default: '2048'
   temperature:
     description: 'Temperature for the model, higher values will make the model more creative, lower values will make it more conservative'
     required: false
