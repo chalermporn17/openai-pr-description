@@ -121,6 +121,8 @@ def main():
         if completion_prompt == "":
             return status
     
+    print(f"Completion prompt: '{completion_prompt}'")
+    
     messages=[
             {
                 "role": "system",
