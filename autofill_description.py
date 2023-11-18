@@ -107,13 +107,14 @@ def main():
     model_sample_response = os.environ.get(
         "INPUT_SAMPLE_RESPONSE", GOOD_SAMPLE_RESPONSE
     )
+    file_types = os.environ.get("INPUT_FILE_TYPES", "").split(",")
     
     authorization_header = {
         "Accept": "application/vnd.github.v3+json",
         "Authorization": "token %s" % github_token,
     }
     
-    status , completion_prompt = get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header)
+    status , completion_prompt = get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header,file_types)
     if status != 0:
         return 1
     
@@ -180,7 +181,7 @@ def main():
         print("Response: " + update_pr_description_result.text)
         return 1
 
-def get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header):
+def get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header,file_types):
     pull_request_url = f"{github_api_url}/repos/{repo}/pulls/{pull_request_id}"
     pull_request_result = requests.get(
         pull_request_url,
@@ -209,8 +210,8 @@ def get_pull_request_description(allowed_users,github_api_url, repo, pull_reques
     pull_request_title = pull_request_data["title"]
 
     pull_request_files = []
-    # Request a maximum of 10 pages (300 files)
-    for page_num in range(1, 11):
+    # Request a maximum of 30 pages (900 files)
+    for page_num in range(1, 31):
         pull_files_url = f"{pull_request_url}/files?page={page_num}&per_page=30"
         pull_files_result = requests.get(
             pull_files_url,
@@ -237,6 +238,7 @@ Go straight to the point.
 
 The title of the pull request is "{pull_request_title}" and the following changes took place: \n
 """
+    is_any_file_type_matched = False
     for pull_request_file in pull_request_files:
         # Not all PR file metadata entries may contain a patch section
         # For example, entries related to removed binary files may not contain it
@@ -245,9 +247,25 @@ The title of the pull request is "{pull_request_title}" and the following change
 
         filename = pull_request_file["filename"]
         patch = pull_request_file["patch"]
-        completion_prompt += f"Changes in file {filename}: {patch}\n"
         
+        if not check_file_type(filename, file_types):
+            print(f"skip file {filename}")
+            continue
+        
+        is_any_file_type_matched = True
+        completion_prompt += f"Changes in file {filename}: {patch}\n"
+    
+    if not is_any_file_type_matched:
+        print("No file type matched")
+        return 1, ""
+    
     return 0, completion_prompt
+
+def check_file_type(filename, file_types):
+    for file_type in file_types:
+        if filename.endswith(file_type):
+            return True
+    return False
 
 def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0613"):
     """Return the number of tokens used by a list of messages."""
