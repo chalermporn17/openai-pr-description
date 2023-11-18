@@ -5,6 +5,7 @@ import argparse
 import json
 import openai
 import os
+import tiktoken
 
 SAMPLE_PROMPT = """
 Write a pull request description focusing on the motivation behind the change and why it improves the project.
@@ -40,10 +41,16 @@ Changes in file test/CommandParserTest.cpp: @@ -566,7 +566,7 @@ TEST(CommandPars
 """
 
 GOOD_SAMPLE_RESPONSE = """
-Currently, our CI build does not include Valgrind as part of the build and test process. Valgrind is a powerful tool for detecting memory errors, and its use is essential for maintaining the integrity of our project.
-This pull request adds Valgrind to the CI build, so that any memory errors will be detected and reported immediately. This will help to prevent undetected memory errors from making it into the production build.
+## Overview
+This pull request aims to integrate Valgrind into our Continuous Integration (CI) process to enhance memory leak detection and code reliability.
 
-Overall, this change will improve the quality of the project by helping us detect and prevent memory errors.
+## Changes Made
+    - **CI Workflow Update**: Included Valgrind installation and configured it to run with our test suite.
+    - **Test Suite Adjustments**: Made minor adjustments to the test suite for better compatibility with Valgrind and improved test coverage.
+
+## Impact
+    - **Enhanced Code Quality**: Integrating Valgrind allows for automatic detection of memory leaks and access errors, leading to a more robust codebase.
+    - **Improved Testing**: The adjustments in the test suite ensure comprehensive testing and accuracy.
 """
 
 
@@ -91,94 +98,30 @@ def main():
     allowed_users = os.environ.get("INPUT_ALLOWED_USERS", "")
     if allowed_users:
         allowed_users = allowed_users.split(",")
-    open_ai_model = os.environ.get("INPUT_OPENAI_MODEL", "gpt-3.5-turbo")
-    max_prompt_tokens = int(os.environ.get("INPUT_MAX_TOKENS", "1000"))
-    model_temperature = float(os.environ.get("INPUT_TEMPERATURE", "0.6"))
+    #open_ai_model
+    open_ai_models = json.loads( os.environ.get("INPUT_OPENAI_MODELS") )
+    #max_prompt_tokens = int(os.environ.get("INPUT_MAX_TOKENS", "1000"))
+    max_response_tokens = int(os.environ.get("INPUT_MAX_RESPONSE_TOKENS"))
+    model_temperature = float(os.environ.get("INPUT_TEMPERATURE"))
     model_sample_prompt = os.environ.get("INPUT_SAMPLE_PROMPT", SAMPLE_PROMPT)
     model_sample_response = os.environ.get(
         "INPUT_SAMPLE_RESPONSE", GOOD_SAMPLE_RESPONSE
     )
+    file_types = os.environ.get("INPUT_FILE_TYPES", "").split(",")
+    
     authorization_header = {
         "Accept": "application/vnd.github.v3+json",
         "Authorization": "token %s" % github_token,
     }
-
-    pull_request_url = f"{github_api_url}/repos/{repo}/pulls/{pull_request_id}"
-    pull_request_result = requests.get(
-        pull_request_url,
-        headers=authorization_header,
-    )
-    if pull_request_result.status_code != requests.codes.ok:
-        print(
-            "Request to get pull request data failed: "
-            + str(pull_request_result.status_code)
-        )
+    
+    status , completion_prompt = get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header,file_types)
+    if status != 0:
         return 1
-    pull_request_data = json.loads(pull_request_result.text)
-
-    if pull_request_data["body"]:
-        print("Pull request already has a description, skipping")
-        return 0
-
-    if allowed_users:
-        pr_author = pull_request_data["user"]["login"]
-        if pr_author not in allowed_users:
-            print(
-                f"Pull request author {pr_author} is not allowed to trigger this action"
-            )
-            return 0
-
-    pull_request_title = pull_request_data["title"]
-
-    pull_request_files = []
-    # Request a maximum of 10 pages (300 files)
-    for page_num in range(1, 11):
-        pull_files_url = f"{pull_request_url}/files?page={page_num}&per_page=30"
-        pull_files_result = requests.get(
-            pull_files_url,
-            headers=authorization_header,
-        )
-
-        if pull_files_result.status_code != requests.codes.ok:
-            print(
-                "Request to get list of files failed with error code: "
-                + str(pull_files_result.status_code)
-            )
-            return 1
-
-        pull_files_chunk = json.loads(pull_files_result.text)
-
-        if len(pull_files_chunk) == 0:
-            break
-
-        pull_request_files.extend(pull_files_chunk)
-
-        completion_prompt = f"""
-Write a pull request description focusing on the motivation behind the change and why it improves the project.
-Go straight to the point.
-
-The title of the pull request is "{pull_request_title}" and the following changes took place: \n
-"""
-    for pull_request_file in pull_request_files:
-        # Not all PR file metadata entries may contain a patch section
-        # For example, entries related to removed binary files may not contain it
-        if "patch" not in pull_request_file:
-            continue
-
-        filename = pull_request_file["filename"]
-        patch = pull_request_file["patch"]
-        completion_prompt += f"Changes in file {filename}: {patch}\n"
-
-    max_allowed_tokens = 2048  # 4096 is the maximum allowed by OpenAI for GPT-3.5
-    characters_per_token = 4  # The average number of characters per token
-    max_allowed_characters = max_allowed_tokens * characters_per_token
-    if len(completion_prompt) > max_allowed_characters:
-        completion_prompt = completion_prompt[:max_allowed_characters]
-
-    openai.api_key = openai_api_key
-    openai_response = openai.ChatCompletion.create(
-        model=open_ai_model,
-        messages=[
+    else:
+        if completion_prompt == "":
+            return status
+        
+    messages=[
             {
                 "role": "system",
                 "content": "You are a helpful assistant who writes pull request descriptions",
@@ -186,11 +129,34 @@ The title of the pull request is "{pull_request_title}" and the following change
             {"role": "user", "content": model_sample_prompt},
             {"role": "assistant", "content": model_sample_response},
             {"role": "user", "content": completion_prompt},
-        ],
+        ]
+    # calculate for model selection
+    model, prompt_token = model_selection(open_ai_models, messages, max_response_tokens)
+    if model == "":
+        print("No model available for this prompt")
+        return 1
+
+    token_left = open_ai_models[model] - prompt_token - max_response_tokens
+    if token_left < 0:
+        print(f"Model {model} does not have enough token to generate response")
+        return 1
+
+    extend_response_token = int( max_response_tokens + token_left * 0.8 )
+    print(f"Using model {model} with {prompt_token} prompt tokens and reserve {extend_response_token} response token")
+    
+    openai.api_key = openai_api_key
+    openai_response = openai.ChatCompletion.create(
+        model=model,
+        messages=messages,
         temperature=model_temperature,
-        max_tokens=max_prompt_tokens,
+        max_tokens=extend_response_token,
     )
 
+    try:
+        usage = openai_response.usage
+        print(f"OpenAI API usage this request: {usage}")
+    except:
+        pass
     generated_pr_description = openai_response.choices[0].message.content
     redundant_prefix = "This pull request "
     if generated_pr_description.startswith(redundant_prefix):
@@ -217,6 +183,126 @@ The title of the pull request is "{pull_request_title}" and the following change
         )
         print("Response: " + update_pr_description_result.text)
         return 1
+
+def get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header,file_types):
+    pull_request_url = f"{github_api_url}/repos/{repo}/pulls/{pull_request_id}"
+    pull_request_result = requests.get(
+        pull_request_url,
+        headers=authorization_header,
+    )
+    if pull_request_result.status_code != requests.codes.ok:
+        print(
+            "Request to get pull request data failed: "
+            + str(pull_request_result.status_code)
+        )
+        return 1 , ""
+    pull_request_data = json.loads(pull_request_result.text)
+
+    if pull_request_data["body"]:
+        print("Pull request already has a description, skipping")
+        return 0 , ""
+
+    if allowed_users:
+        pr_author = pull_request_data["user"]["login"]
+        if pr_author not in allowed_users:
+            print(
+                f"Pull request author {pr_author} is not allowed to trigger this action"
+            )
+            return 0 , ""
+
+    pull_request_title = pull_request_data["title"]
+
+    pull_request_files = []
+    # Request a maximum of 30 pages (900 files)
+    for page_num in range(1, 31):
+        pull_files_url = f"{pull_request_url}/files?page={page_num}&per_page=30"
+        pull_files_result = requests.get(
+            pull_files_url,
+            headers=authorization_header,
+        )
+
+        if pull_files_result.status_code != requests.codes.ok:
+            print(
+                "Request to get list of files failed with error code: "
+                + str(pull_files_result.status_code)
+            )
+            return 1 , ""
+
+        pull_files_chunk = json.loads(pull_files_result.text)
+
+        if len(pull_files_chunk) == 0:
+            break
+
+        pull_request_files.extend(pull_files_chunk)
+
+        completion_prompt = f"""
+Write a pull request description focusing on the motivation behind the change and why it improves the project.
+Go straight to the point.
+
+The title of the pull request is "{pull_request_title}" and the following changes took place: \n
+"""
+    is_any_file_type_matched = False
+    for pull_request_file in pull_request_files:
+        # Not all PR file metadata entries may contain a patch section
+        # For example, entries related to removed binary files may not contain it
+        if "patch" not in pull_request_file:
+            continue
+
+        filename = pull_request_file["filename"]
+        patch = pull_request_file["patch"]
+        
+        if not check_file_type(filename, file_types):
+            print(f"skip file {filename}")
+            continue
+        
+        is_any_file_type_matched = True
+        completion_prompt += f"Changes in file {filename}: {patch}\n"
+    
+    if not is_any_file_type_matched:
+        print("No file type matched")
+        return 0, ""
+    
+    return 0, completion_prompt
+
+def check_file_type(filename, file_types):
+    for file_type in file_types:
+        if filename.endswith(file_type):
+            return True
+    return False
+
+def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0613"):
+    """Return the number of tokens used by a list of messages."""
+    encoding = tiktoken.get_encoding("cl100k_base")
+    tokens_per_message = 3
+    tokens_per_name = 1
+    num_tokens = 0
+    for message in messages:
+        num_tokens += tokens_per_message
+        for key, value in message.items():
+            num_tokens += len(encoding.encode(value))
+            if key == "name":
+                num_tokens += tokens_per_name
+    num_tokens += 3
+    return num_tokens
+
+def model_selection( models , messages , max_response_tokens):
+    candidate = []
+    for model in models:
+        max_token = models[model]
+        max_prompt_tokens = max_token - max_response_tokens
+        if max_prompt_tokens < 0:
+            continue
+        prompt_tokens = num_tokens_from_messages(messages, model)
+        if prompt_tokens > max_prompt_tokens:
+            continue
+        print(f"May using model {model} with {prompt_tokens} prompt tokens and reserve {max_response_tokens} response token")
+        candidate.append([model, models[model] , prompt_tokens])
+    if len(candidate) == 0:
+        return "",0
+    # sort by max_token
+    candidate.sort(key=lambda x: x[1])
+    print(f"Using model {candidate[0][0]}")
+    return candidate[0][0] , candidate[0][2]
 
 
 if __name__ == "__main__":
