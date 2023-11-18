@@ -6,7 +6,9 @@ Autofill the description of your pull requests with the power of OpenAI!
 
 ## What does it do?
 
-`chalermporn17/openai-pr-description` is forked from `platisd/openai-pr-description` which is a GitHub Action that looks at the title as well as the contents
+`chalermporn17/openai-pr-description` is forked from 
+```
+`platisd/openai-pr-description` which is a GitHub Action that looks at the title as well as the contents
 of your pull request and uses the [OpenAI API](https://openai.com/blog/openai-api) to automatically
 fill up the description of your pull request. Just like ChatGPT would! 🎉<br>
 The Action tries to focus on **why** the changes are needed rather on **what** they are,
@@ -19,6 +21,7 @@ You can customize it in different ways. One of them allows the Action to only ru
 by specific users, e.g. the main maintainers of the repository.
 Keep in mind the OpenAI API is not free to use. That being said, so far it's been rather cheap,
 i.e. around ~$0.10 for 15-20 pull requests so far.
+```
 
 ## New Feature
 - model selection base on change which will choose bigger model if pull request if big.
@@ -67,7 +70,7 @@ jobs:
 [secret]: https://docs.github.com/en/actions/security-guides/encrypted-secrets
 
 ## File types that will include in prompt
-``.java,.py,.js,.ts,.cpp,.c,.cs,.rb,.go,.php,.swift,.html,.htm,.css,.scss,.sass,.less,.xml,.json,.yaml,.yml,.sh,.bat,.ps1,.cfg,.conf,.ini,.md,.txt,.rtf,.pdf,.sql,.db,.sqlite,.xaml,.plist`
+`.java,.py,.js,.ts,.cpp,.c,.cs,.rb,.go,.php,.swift,.html,.htm,.css,.scss,.sass,.less,.xml,.json,.yaml,.yml,.sh,.bat,.ps1,.cfg,.conf,.ini,.md,.txt,.rtf,.pdf,.sql,.db,.sqlite,.xaml,.plist`
 
 too include or exclude file type, you can edit `file_types` in action argument.
 
@@ -126,7 +129,7 @@ This pull request aims to integrate Valgrind into our Continuous Integration (CI
     - If multiple models satisfy this condition, select the one with the smallest maximum token capacity.
 
 
-### `403` error when updating the PR description
+## `403` error when updating the PR description
 
 If you get a `403` error when trying to update the PR description, it's most likely because
 the GitHub Action is not allowed to do so.
