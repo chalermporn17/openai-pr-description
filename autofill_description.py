@@ -185,6 +185,8 @@ def main():
         issues_url,
         headers=authorization_header,
         json={"body": generated_pr_description},
+        timeout=30,
+
     )
 
     if update_pr_description_result.status_code != requests.codes.ok:
@@ -200,6 +202,7 @@ def get_pull_request_description(allowed_users,github_api_url, repo, pull_reques
     pull_request_result = requests.get(
         pull_request_url,
         headers=authorization_header,
+        timeout=30,
     )
     if pull_request_result.status_code != requests.codes.ok:
         print(
@@ -230,6 +233,7 @@ def get_pull_request_description(allowed_users,github_api_url, repo, pull_reques
         pull_files_result = requests.get(
             pull_files_url,
             headers=authorization_header,
+            timeout=30,
         )
 
         if pull_files_result.status_code != requests.codes.ok:
