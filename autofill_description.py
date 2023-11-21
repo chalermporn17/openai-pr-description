@@ -156,12 +156,23 @@ def main():
     print(f"Using model {model} with {prompt_token} prompt tokens and reserve {extend_response_token} response token")
     
     openai.api_key = openai_api_key
-    openai_response = openai.ChatCompletion.create(
-        model=model,
-        messages=messages,
-        temperature=model_temperature,
-        max_tokens=extend_response_token,
-    )
+    
+    while True:
+        try:
+            openai_response = openai.ChatCompletion.create(
+                model=model,
+                messages=messages,
+                temperature=model_temperature,
+                max_tokens=extend_response_token,
+            )
+            break
+        except Exception as e:
+            print(f"Exception: {e}")
+            if "Connection aborted".lower() in str(e).lower():
+                print("Retry")
+            else:
+                return 1
+        
 
     try:
         usage = openai_response.usage
