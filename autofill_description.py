@@ -11,7 +11,7 @@ SAMPLE_PROMPT = """
 Write a pull request description , describe the summary of change.
 Go straight to the point.
 
-answer in format
+answer in format ( not include ```)
 ```
 ## Overview
 tell overview here
@@ -265,7 +265,7 @@ def get_pull_request_description(allowed_users,github_api_url, repo, pull_reques
 Write a pull request description , describe the summary of change.
 Go straight to the point.
 
-answer in format
+answer in format ( not include ``` )
 ```
 ## Overview
 tell overview here
