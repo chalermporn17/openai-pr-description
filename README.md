@@ -65,10 +65,10 @@ jobs:
 | `openai_models`      | The [OpenAI model] to use, contains a JSON key indicating the model name and value as the max tokens for the model | No       | `{ "gpt-3.5-turbo": 4096, "gpt-3.5-turbo-16k": 16384}`|
 | `max_response_tokens`| The maximum number of **response tokens** to be used         | No       | `2048`                                                |
 | `temperature`        | Higher values increase model creativity (range: 0-2)        | No       | `0.6`                                                 |
-| `sample_prompt`      | The prompt used to provide context to the model              | No       | See `SAMPLE_PROMPT`                                   |
+| `header_sample_prompt`      | The prompt used to provide context to the model              | No       | See `SAMPLE_PROMPT`                                   |
 | `sample_response`    | A sample response used to provide context to the model       | No       | See `GOOD_SAMPLE_RESPONSE`                            |
 | `file_types` |   A comma separated list of file types to include in the prompt. | No       | See `File types that will include in prompt` |
-
+| `saver_mode` | If true, will ignore chat guide before the sample prompt and only use the sample prompt as the input to the model | No       | `false` |
 
 
 [OpenAI API key]: https://help.openai.com/en/articles/4936850-where-do-i-find-my-secret-api-key
@@ -84,50 +84,65 @@ too include or exclude file type, you can edit `file_types` in action argument.
 
 ## Default sample prompt
 - SAMPLE_PROMPT
-```
-Write a pull request description focusing on the motivation behind the change and why it improves the project.
-Go straight to the point.
+  - input prompt will generate from `header_sample_prompt` concat with `pull request file change`
+  - default `header_sample_prompt`
+    ```
+    Write a pull request description , describe the summary of change.
+    Go straight to the point.
 
-The title of the pull request is "Enable valgrind on CI" and the following changes took place: 
+    answer in below format
 
-Changes in file .github/workflows/build-ut-coverage.yml: @@ -24,6 +24,7 @@ jobs:
-         run: |
-           sudo apt-get update
-           sudo apt-get install -y lcov
-+          sudo apt-get install -y valgrind
-           sudo apt-get install -y ${{ matrix.compiler.cc }}
-           sudo apt-get install -y ${{ matrix.compiler.cxx }}
-       - name: Checkout repository
-@@ -48,3 +49,7 @@ jobs:
-         with:
-           files: coverage.info
-           fail_ci_if_error: true
-+      - name: Run valgrind
-+        run: |
-+          valgrind --tool=memcheck --leak-check=full --leak-resolution=med \
-+            --track-origins=yes --vgdb=no --error-exitcode=1 ${build_dir}/test/command_parser_test
-Changes in file test/CommandParserTest.cpp: @@ -566,7 +566,7 @@ TEST(CommandParserTest, ParsedCommandImpl_WhenArgumentIsSupportedNumericTypeWill
-     unsigned long long expectedUnsignedLongLong { std::numeric_limits<unsigned long long>::max() };
-     float expectedFloat { -164223.123f }; // std::to_string does not play well with floating point min()
-     double expectedDouble { std::numeric_limits<double>::max() };
--    long double expectedLongDouble { std::numeric_limits<long double>::max() };
-+    long double expectedLongDouble { 123455678912349.1245678912349L };
- 
-     auto command = UnparsedCommand::create(expectedCommand, "dummyDescription"s)
-                        .withArgs<int, long, unsigned long, long long, unsigned long long, float, double, long double>();
-```
+    ## Overview
+    tell overview here
+    ## Changes Made
+    - **Header**: Description
+    - **Header**: Description
+    ## Impact
+    - **Header**: Description
+    - **Header**: Description
+
+    content of pull request is below
+    ```
+  - example of generated `pull request file change`
+    ```
+    The title of the pull request is "Enable valgrind on CI" and the following changes took place: 
+
+    Changes in file .github/workflows/build-ut-coverage.yml: 
+    @@ -24,6 +24,7 @@ jobs:
+            run: |
+              sudo apt-get update
+              sudo apt-get install -y lcov
+    +          sudo apt-get install -y valgrind
+              sudo apt-get install -y ${{ matrix.compiler.cc }}
+              sudo apt-get install -y ${{ matrix.compiler.cxx }}
+          - name: Checkout repository
+    @@ -48,3 +49,7 @@ jobs:
+            with:
+              files: coverage.info
+              fail_ci_if_error: true
+    +      - name: Run valgrind
+    +        run: |
+    +          valgrind --tool=memcheck --leak-check=full --leak-resolution=med \
+    +            --track-origins=yes --vgdb=no --error-exitcode=1 ${build_dir}/test/command_parser_test
+    Changes in file test/CommandParserTest.cpp: @@ -566,7 +566,7 @@ TEST(CommandParserTest, ParsedCommandImpl_WhenArgumentIsSupportedNumericTypeWill
+        unsigned long long expectedUnsignedLongLong { std::numeric_limits<unsigned long long>::max() };
+        float expectedFloat { -164223.123f }; // std::to_string does not play well with floating point min()
+        double expectedDouble { std::numeric_limits<double>::max() };
+    -    long double expectedLongDouble { std::numeric_limits<long double>::max() };
+    +    long double expectedLongDouble { 123455678912349.1245678912349L };
+    ```
 - GOOD_SAMPLE_RESPONSE
-```
-This pull request aims to integrate Valgrind into our Continuous Integration (CI) process to enhance memory leak detection and code reliability.
+  ```
+  This pull request aims to integrate Valgrind into our Continuous Integration (CI) process to enhance memory leak detection and code reliability.
 
-## Changes Made
-    - **CI Workflow Update**: Included Valgrind installation and configured it to run with our test suite.
-    - **Test Suite Adjustments**: Made minor adjustments to the test suite for better compatibility with Valgrind and improved test coverage.
+  ## Changes Made
+      - **CI Workflow Update**: Included Valgrind installation and configured it to run with our test suite.
+      - **Test Suite Adjustments**: Made minor adjustments to the test suite for better compatibility with Valgrind and improved test coverage.
 
-## Impact
-    - **Enhanced Code Quality**: Integrating Valgrind allows for automatic detection of memory leaks and access errors, leading to a more robust codebase.
-    - **Improved Testing**: The adjustments in the test suite ensure comprehensive testing and accuracy.
-```
+  ## Impact
+      - **Enhanced Code Quality**: Integrating Valgrind allows for automatic detection of memory leaks and access errors, leading to a more robust codebase.
+      - **Improved Testing**: The adjustments in the test suite ensure comprehensive testing and accuracy.
+  ```
 
 ## Model Selection Process
 1. Calculate the total number of tokens used in the model prompt (`prompt_tokens`), which includes the tokens from the `example prompt`, `example response`, and the `prompt generated from the pull request`.

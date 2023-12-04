@@ -27,7 +27,7 @@ inputs:
     description: 'Temperature for the model, higher values will make the model more creative, lower values will make it more conservative'
     required: false
     default: '0.6'
-  sample_prompt:
+  header_sample_prompt:
     description: 'Sample prompt to use for the model, refer to SAMPLE_PROMPT in the Python file.'
     required: false
     default: ''
@@ -39,7 +39,10 @@ inputs:
     description: 'Comma-separated list of file types to include in the PR description'
     required: false
     default: '.java,.py,.js,.ts,.cpp,.c,.cs,.rb,.go,.php,.swift,.html,.htm,.css,.scss,.sass,.less,.xml,.json,.yaml,.yml,.sh,.bat,.ps1,.cfg,.conf,.ini,.md,.txt,.rtf,.pdf,.sql,.db,.sqlite,.xaml,.plist'
-
+  saver_mode:
+    description: 'If true, will ignore chat guide before the sample prompt and only use the sample prompt as the input to the model'
+    required: false
+    default: 'false'
 runs:
   using: 'docker'
   image: 'Dockerfile'
