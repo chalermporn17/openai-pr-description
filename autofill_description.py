@@ -129,7 +129,10 @@ def main():
         "Accept": "application/vnd.github.v3+json",
         "Authorization": "token %s" % github_token,
     }
-    
+    if model_header_sample_prompt == "":
+        model_header_sample_prompt = HEADER_SAMPLE_PROMPT
+    if model_sample_response == "":
+        model_sample_response = GOOD_SAMPLE_RESPONSE
     status , completion_prompt = get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header,file_types,model_header_sample_prompt)
     if status != 0:
         return 1
