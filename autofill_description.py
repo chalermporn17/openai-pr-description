@@ -119,7 +119,7 @@ def main():
         "INPUT_SAMPLE_RESPONSE", GOOD_SAMPLE_RESPONSE
     )
     file_types = os.environ.get("INPUT_FILE_TYPES", "").split(",")
-    
+    saver_mode = os.environ.get("INPUT_SAVER_MODE", "false").lower() == "true"
     authorization_header = {
         "Accept": "application/vnd.github.v3+json",
         "Authorization": "token %s" % github_token,
@@ -131,16 +131,19 @@ def main():
     else:
         if completion_prompt == "":
             return status
-        
-    messages=[
-            {
-                "role": "system",
-                "content": "You are a helpful assistant who writes pull request descriptions",
-            },
-            {"role": "user", "content": model_sample_prompt},
-            {"role": "assistant", "content": model_sample_response},
-            {"role": "user", "content": completion_prompt},
-        ]
+    
+    messages = [
+        {
+            "role": "system",
+            "content": "You are a helpful assistant who writes pull request descriptions",
+        }
+    ]
+    
+    if not saver_mode:
+        messages.append({"role": "user", "content": model_header_sample_prompt + "\n" + CONTENT_SAMPLE_PROMPT })
+        messages.append({"role": "assistant", "content": model_sample_response})
+    messages.append({"role": "user", "content": completion_prompt})
+
     # calculate for model selection
     model, prompt_token = model_selection(open_ai_models, messages, max_response_tokens)
     if model == "":

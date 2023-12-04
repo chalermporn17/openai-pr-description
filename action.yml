@@ -39,7 +39,10 @@ inputs:
     description: 'Comma-separated list of file types to include in the PR description'
     required: false
     default: '.java,.py,.js,.ts,.cpp,.c,.cs,.rb,.go,.php,.swift,.html,.htm,.css,.scss,.sass,.less,.xml,.json,.yaml,.yml,.sh,.bat,.ps1,.cfg,.conf,.ini,.md,.txt,.rtf,.pdf,.sql,.db,.sqlite,.xaml,.plist'
-
+  saver_mode:
+    description: 'If true, will ignore chat guide before the sample prompt and only use the sample prompt as the input to the model'
+    required: false
+    default: 'false'
 runs:
   using: 'docker'
   image: 'Dockerfile'
