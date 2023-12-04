@@ -151,7 +151,7 @@ def main():
 
     print("Prompt:")
     for message in messages:
-        print(message)
+        print(message["content"])
         print("-" * 80)
 
     # calculate for model selection
