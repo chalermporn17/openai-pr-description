@@ -143,11 +143,16 @@ def main():
             "content": "You are a helpful assistant who writes pull request descriptions",
         }
     ]
-    
+
     if not saver_mode:
         messages.append({"role": "user", "content": model_header_sample_prompt + "\n" + CONTENT_SAMPLE_PROMPT })
         messages.append({"role": "assistant", "content": model_sample_response})
     messages.append({"role": "user", "content": completion_prompt})
+
+    print("Prompt:")
+    for message in messages:
+        print(message)
+        print("-" * 80)
 
     # calculate for model selection
     model, prompt_token = model_selection(open_ai_models, messages, max_response_tokens)
