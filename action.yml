@@ -27,7 +27,7 @@ inputs:
     description: 'Temperature for the model, higher values will make the model more creative, lower values will make it more conservative'
     required: false
     default: '0.6'
-  sample_prompt:
+  header_sample_prompt:
     description: 'Sample prompt to use for the model, refer to SAMPLE_PROMPT in the Python file.'
     required: false
     default: ''

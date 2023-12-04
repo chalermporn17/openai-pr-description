@@ -7,12 +7,12 @@ import openai
 import os
 import tiktoken
 
-SAMPLE_PROMPT = """
+HEADER_SAMPLE_PROMPT = """
 Write a pull request description , describe the summary of change.
 Go straight to the point.
 
-answer in format ( not include ```)
-```
+answer in below format
+
 ## Overview
 tell overview here
 ## Changes Made
@@ -21,10 +21,15 @@ tell overview here
 ## Impact
 - **Header**: Description
 - **Header**: Description
-```
+
+content of pull request is below
+"""
+
+CONTENT_SAMPLE_PROMPT = """
 The title of the pull request is "Enable valgrind on CI" and the following changes took place: 
 
-Changes in file .github/workflows/build-ut-coverage.yml: @@ -24,6 +24,7 @@ jobs:
+Changes in file .github/workflows/build-ut-coverage.yml: 
+@@ -24,6 +24,7 @@ jobs:
          run: |
            sudo apt-get update
            sudo apt-get install -y lcov
@@ -114,7 +119,7 @@ def main():
     #max_prompt_tokens = int(os.environ.get("INPUT_MAX_TOKENS", "1000"))
     max_response_tokens = int(os.environ.get("INPUT_MAX_RESPONSE_TOKENS"))
     model_temperature = float(os.environ.get("INPUT_TEMPERATURE"))
-    model_sample_prompt = os.environ.get("INPUT_SAMPLE_PROMPT", SAMPLE_PROMPT)
+    model_header_sample_prompt = os.environ.get("INPUT_HEADER_SAMPLE_PROMPT", HEADER_SAMPLE_PROMPT)
     model_sample_response = os.environ.get(
         "INPUT_SAMPLE_RESPONSE", GOOD_SAMPLE_RESPONSE
     )
@@ -125,7 +130,7 @@ def main():
         "Authorization": "token %s" % github_token,
     }
     
-    status , completion_prompt = get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header,file_types)
+    status , completion_prompt = get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header,file_types,model_header_sample_prompt)
     if status != 0:
         return 1
     else:
@@ -211,7 +216,7 @@ def main():
         print("Response: " + update_pr_description_result.text)
         return 1
 
-def get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header,file_types):
+def get_pull_request_description(allowed_users,github_api_url, repo, pull_request_id, authorization_header,file_types,model_header_sample_prompt):
     pull_request_url = f"{github_api_url}/repos/{repo}/pulls/{pull_request_id}"
     pull_request_result = requests.get(
         pull_request_url,
@@ -263,23 +268,8 @@ def get_pull_request_description(allowed_users,github_api_url, repo, pull_reques
             break
 
         pull_request_files.extend(pull_files_chunk)
-
-        completion_prompt = f"""
-Write a pull request description , describe the summary of change.
-Go straight to the point.
-
-answer in format ( not include ``` )
-```
-## Overview
-tell overview here
-## Changes Made
-- **Header**: Description
-- **Header**: Description
-## Impact
-- **Header**: Description
-- **Header**: Description
-```
-
+        completion_prompt = model_header_sample_prompt + "\n"
+        completion_prompt += f"""
 The title of the pull request is "{pull_request_title}" and the following changes took place: \n
 """
     is_any_file_type_matched = False
@@ -297,7 +287,7 @@ The title of the pull request is "{pull_request_title}" and the following change
             continue
         
         is_any_file_type_matched = True
-        completion_prompt += f"Changes in file {filename}: {patch}\n"
+        completion_prompt += f"Changes in file {filename}:\n {patch}\n"
     
     if not is_any_file_type_matched:
         print("No file type matched")
