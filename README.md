@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     steps:
-      - uses: chalermporn17/openai-pr-description@dev
+      - uses: chalermporn17/openai-pr-description@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}
